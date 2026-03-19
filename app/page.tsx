@@ -1,277 +1,174 @@
 'use client';
-import React from 'react';
-import {
-  Globe,
-  Github,
-  Server,
-  Rocket,
-  CheckCircle2,
-  Link2,
-  Settings2,
-  Clock3,
-  FileCode2,
-  Database,
-  Terminal,
-  ShieldCheck,
-} from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { useState, useEffect } from 'react';
+import { Globe, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 
-const steps = [
-  {
-    title: '1. Dung repo local sach',
-    icon: FileCode2,
-    desc: 'Tao project Next.js production, cai UI, ORM, cache client, roi chay local truoc khi day GitHub.',
-    code: 'npx create-next-app@latest hot-news-pulse --typescript --tailwind',
-  },
-  {
-    title: '2. Tach file theo dung cau truc repo',
-    icon: Settings2,
-    desc: 'Khong de toan bo logic trong mot file. Tach dashboard, routes, scoring, providers, verify, DB schema.',
-    code: 'app/page.tsx\napp/api/ingest/route.ts\napp/api/events/route.ts',
-  },
-  {
-    title: '3. Ket noi database',
-    icon: Database,
-    desc: 'Tao PostgreSQL that, migrate schema, seed du lieu test de dashboard co output ngay khi deploy.',
-    code: 'npx prisma init\nnpx prisma migrate dev --name init',
-  },
-  {
-    title: '4. Push len GitHub',
-    icon: Github,
-    desc: 'Commit sach lan dau, day len repo public hoac private.',
-    code: 'git init && git add . && git push -u origin main',
-  },
-  {
-    title: '5. Deploy len Vercel',
-    icon: Rocket,
-    desc: 'Phu hop nhat la Vercel cho frontend + API routes.',
-    code: 'vercel',
-  },
-  {
-    title: '6. Gan domain doc lap',
-    icon: Globe,
-    desc: 'Mua domain o Cloudflare, tro DNS ve nen tang deploy, bat HTTPS.',
-    code: 'news.yourdomain.com',
-  },
-];
-
-const envVars = [
-  'DATABASE_URL',
-  'REDIS_URL',
-  'OPENAI_API_KEY',
-  'X_BEARER_TOKEN',
-  'NEWS_API_KEY',
-  'CRON_SECRET',
-  'NEXT_PUBLIC_APP_URL',
-];
-
-const goLiveChecklist = [
-  'Repo chay duoc local voi npm run dev',
-  'Prisma migrate chay thanh cong',
-  'API /api/events tra JSON that',
-  'API /api/ingest co secret bao ve',
-  'Co du lieu seed hoac ingest test',
-  'Da add env vars tren host',
-  'Da gan custom domain',
-  'HTTPS hoat dong binh thuong',
-  'Cron ingest chay moi 5-10 phut',
-  'Co log loi va canh bao rate-limit',
-];
-
-const recommendedStack = [
-  { name: 'Frontend + API', value: 'Next.js tren Vercel' },
-  { name: 'Database', value: 'Neon / Supabase Postgres' },
-  { name: 'Redis cache', value: 'Upstash Redis' },
-  { name: 'Cron', value: 'Vercel Cron hoac GitHub Actions' },
-  { name: 'LLM verify', value: 'OpenAI Responses API' },
-  { name: 'Domain + DNS', value: 'Cloudflare' },
-];
-
-function CodeBlock({ code }: { code: string }) {
-  return (
-    <pre className="overflow-x-auto rounded-2xl bg-neutral-950 p-4 text-xs leading-6 text-neutral-100">
-      <code>{code}</code>
-    </pre>
-  );
+interface NewsArticle {
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  urlToImage?: string;
+  score: number;
 }
 
-export default function HotNewsPulseDeployGuide() {
+const countries = [
+  { code: 'us', name: 'United States', flag: '🇺🇸' },
+  { code: 'gb', name: 'United Kingdom', flag: '🇬🇧' },
+  { code: 'vn', name: 'Vietnam', flag: '🇻🇳' },
+  { code: 'jp', name: 'Japan', flag: '🇯🇵' },
+  { code: 'kr', name: 'South Korea', flag: '🇰🇷' },
+  { code: 'cn', name: 'China', flag: '🇨🇳' },
+];
+
+export default function Home() {
+  const [selectedCountry, setSelectedCountry] = useState('us');
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  const fetchNews = async (countryCode: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/news?country=${countryCode}`);
+      const data = await res.json();
+      setNews(data.articles || []);
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Error fetching news:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNews(selectedCountry);
+  }, [selectedCountry]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-neutral-50 p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <Card className="rounded-3xl border-neutral-200 shadow-sm">
-          <CardHeader>
-            <CardTitle>Hot News Pulse Pro - Go Live Plan</CardTitle>
-            <CardDescription>
-              Lo trinh thuc chien tu blueprint sang he thong online co domain
-              rieng.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { label: 'Uu tien host', value: 'Vercel' },
-                { label: 'DNS khuyen nghi', value: 'Cloudflare' },
-                { label: 'DB khuyen nghi', value: 'Postgres' },
-                { label: 'Cron ingest', value: '5-10 phut' },
-              ].map((item) => (
-                <div key={item.label} className="rounded-2xl border p-4">
-                  <div className="text-sm text-neutral-500">{item.label}</div>
-                  <div className="mt-1 text-xl font-semibold">{item.value}</div>
-                </div>
-              ))}
+    <div className=\"min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900\">
+      <header className=\"border-b border-purple-800/30 backdrop-blur-lg bg-slate-900/50 sticky top-0 z-50\">
+        <div className=\"max-w-7xl mx-auto px-4 py-4\">
+          <div className=\"flex items-center justify-between\">
+            <div className=\"flex items-center gap-3\">
+              <div className=\"w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center\">
+                <Globe className=\"w-6 h-6 text-white\" />
+              </div>
+              <div>
+                <h1 className=\"text-2xl font-bold text-white\">Hot News Pulse Pro</h1>
+                <p className=\"text-sm text-purple-300\">Real-time Global News Intelligence</p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+            <button
+              onClick={() => fetchNews(selectedCountry)}
+              disabled={loading}
+              className=\"flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition disabled:opacity-50\"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+        </div>
+      </header>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {steps.map((step) => {
-            const Icon = step.icon;
-            return (
-              <Card
-                key={step.title}
-                className="rounded-3xl border-neutral-200 shadow-sm"
-              >
-                <CardContent className="p-5">
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-neutral-600">
-                    {step.desc}
+      <main className=\"max-w-7xl mx-auto px-4 py-8\">
+        <div className=\"grid grid-cols-1 lg:grid-cols-4 gap-6\">
+          <aside className=\"lg:col-span-1\">
+            <div className=\"bg-slate-800/50 backdrop-blur-lg rounded-xl border border-purple-800/30 p-4\">
+              <h2 className=\"text-lg font-semibold text-white mb-4 flex items-center gap-2\">
+                <Globe className=\"w-5 h-5\" />
+                Select Country
+              </h2>
+              <div className=\"space-y-2\">
+                {countries.map((country) => (
+                  <button
+                    key={country.code}
+                    onClick={() => setSelectedCountry(country.code)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                      selectedCountry === country.code
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-slate-700/50 text-gray-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    <span className=\"text-2xl\">{country.flag}</span>
+                    <span className=\"font-medium\">{country.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              {lastUpdate && (
+                <div className=\"mt-6 pt-4 border-t border-slate-700\">
+                  <p className=\"text-xs text-gray-400\">
+                    Last updated: {lastUpdate.toLocaleTimeString()}
                   </p>
-                  <div className="mt-4">
-                    <CodeBlock code={step.code} />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Card className="rounded-3xl border-neutral-200 shadow-sm">
-            <CardHeader>
-              <CardTitle>Bien moi truong phai co</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {envVars.map((item) => (
-                  <div
-                    key={item}
-                    className="rounded-xl border px-3 py-2 font-mono text-sm"
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="rounded-3xl border-neutral-200 shadow-sm">
-            <CardHeader>
-              <CardTitle>Stack khuyen nghi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recommendedStack.map((item) => (
-                  <div
-                    key={item.name}
-                    className="flex items-start justify-between gap-4 rounded-2xl border p-4"
-                  >
-                    <div className="text-sm font-medium">{item.name}</div>
-                    <div className="text-right text-sm text-neutral-600">
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="rounded-3xl border-neutral-200 shadow-sm">
-          <CardHeader>
-            <CardTitle>Checklist go-live</CardTitle>
-            <CardDescription>
-              Dat du nhung muc nay thi tool moi nen mo tren domain doc lap.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {goLiveChecklist.map((item, idx) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 rounded-2xl border p-3"
-                >
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <div className="text-sm leading-6 text-neutral-700">
-                    {idx + 1}. {item}
-                  </div>
                 </div>
-              ))}
-              <div className="pt-2">
-                <div className="mb-2 flex items-center justify-between text-sm text-neutral-500">
-                  <span>Muc san sang go-live</span>
-                  <span>90%</span>
-                </div>
-                <Progress value={90} className="h-2" />
-              </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </aside>
 
-        <Card className="rounded-3xl border-neutral-200 shadow-sm">
-          <CardHeader>
-            <CardTitle>Ket luan thuc chien</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {[
-                {
-                  icon: Github,
-                  label: 'GitHub',
-                  desc: 'Repo phai sach, build pass, co README va env example.',
-                },
-                {
-                  icon: Server,
-                  label: 'Hosting',
-                  desc: 'Connect repo vao Vercel, add env vars, deploy ban dau tien.',
-                },
-                {
-                  icon: Link2,
-                  label: 'Domain',
-                  desc: 'Tro DNS, xac minh domain, kiem tra HTTPS.',
-                },
-                {
-                  icon: Clock3,
-                  label: 'Cron',
-                  desc: 'Bat lich ingest dinh ky sau cung.',
-                },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div key={item.label} className="rounded-2xl border p-4">
-                    <div className="mb-2 inline-flex items-center gap-2 font-medium">
-                      <Icon className="h-4 w-4" /> {item.label}
-                    </div>
-                    <div className="text-sm leading-6 text-neutral-600">
-                      {item.desc}
-                    </div>
+          <div className=\"lg:col-span-3\">
+            {loading ? (
+              <div className=\"flex items-center justify-center h-96\">
+                <div className=\"text-center\">
+                  <RefreshCw className=\"w-12 h-12 text-purple-500 animate-spin mx-auto mb-4\" />
+                  <p className=\"text-gray-400\">Loading news...</p>
+                </div>
+              </div>
+            ) : (
+              <div className=\"space-y-4\">
+                {news.length === 0 ? (
+                  <div className=\"bg-slate-800/50 backdrop-blur-lg rounded-xl border border-purple-800/30 p-12 text-center\">
+                    <AlertCircle className=\"w-12 h-12 text-gray-500 mx-auto mb-4\" />
+                    <p className=\"text-gray-400\">No news available</p>
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                ) : (
+                  news.map((article, idx) => (
+                    <article
+                      key={idx}
+                      className=\"bg-slate-800/50 backdrop-blur-lg rounded-xl border border-purple-800/30 p-6 hover:border-purple-600/50 transition group\">
+                      <div className=\"flex gap-4\">
+                        {article.urlToImage && (
+                          <div className=\"flex-shrink-0\">
+                            <img
+                              src={article.urlToImage}
+                              alt=\"\"
+                              className=\"w-32 h-32 object-cover rounded-lg\"
+                              onError={(e) => (e.currentTarget.style.display = 'none')}
+                            />
+                          </div>
+                        )}
+                        <div className=\"flex-1 min-w-0\">
+                          <div className=\"flex items-start justify-between gap-4 mb-2\">
+                            <h3 className=\"text-xl font-semibold text-white group-hover:text-purple-400 transition\">
+                              <a href={article.url} target=\"_blank\" rel=\"noopener noreferrer\">
+                                {article.title}
+                              </a>
+                            </h3>
+                            {article.score > 0 && (
+                              <div className=\"flex items-center gap-1 px-3 py-1 bg-purple-600/20 rounded-full flex-shrink-0\">
+                                <TrendingUp className=\"w-4 h-4 text-purple-400\" />
+                                <span className=\"text-sm font-semibold text-purple-400\">
+                                  {article.score}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <p className=\"text-gray-400 mb-3 line-clamp-2\">{article.description}</p>
+                          <div className=\"flex items-center gap-4 text-sm text-gray-500\">
+                            <span className=\"font-medium text-purple-400\">{article.source}</span>
+                            <span>•</span>
+                            <span>{new Date(article.publishedAt).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
